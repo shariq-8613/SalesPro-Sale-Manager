@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <title>SalesPro - Sale Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            scroll-behavior: smooth;
+            font-size: 0.75rem; 
+        }
+
+        .tab-btn.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .custom-shadow {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 8px; 
+            font-weight: 800;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+            outline: none !important;
+            box-shadow: none !important;
+            width: fit-content;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            text-align: center;
+        }
+
+        .status-Pending { background-color: #fef9c3; color: #854d0e; border-color: #fde047; }
+        .status-Done { background-color: #dcfce7; color: #166534; border-color: #86efac; }
+        .status-Cancelled { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+        .input-error {
+            border: 1.5px solid #ef4444 !important;
+            background-color: #fef2f2 !important;
+        }
+
+        /* Global Focus Style (Create Section etc.) - Remains Blue */
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border: 1.5px solid #2563eb !important;
+        }
+
+        /* --- FIX: Remove Blue Border ONLY in Records Section --- */
+        #section-records input:focus, 
+        #section-records select:focus {
+            box-shadow: none !important;
+            /* Reset border to default gray or transparent based on element */
+            border: 1px solid #e2e8f0 !important; 
+        }
+
+        /* Specific fix for border-less selects (Filters) in Records */
+        #section-records select.border-none:focus {
+            border: none !important;
+        }
+
+        /* Specific fix for Status Pills in Records */
+        #section-records .status-pill:focus {
+            border: 1px solid transparent !important;
+        }
+        
+        #toast {
+            min-width: fit-content;
+            white-space: nowrap;
+            max-width: 90vw;
+        }
+
+        label { font-size: 0.65rem !important; margin-bottom: 2px; display: block; font-weight: 700; color: #64748b; }
+        input, select, textarea { font-size: 0.75rem !important; }
+        
+        .detail-label { font-size: 7px; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .detail-value { font-size: 10px; color: #1e293b; font-weight: 600; }
+        
+        .divider-pipe { margin: 0 4px; color: #e2e8f0; font-weight: 300; }
+
+        #deleteModalOverlay, #settingsModalOverlay {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.2s ease-out;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .hidden { display: none !important; }
+
+        @keyframes highlightPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .recurring-active {
+            animation: highlightPulse 0.4s ease-out;
+            border: 2px solid #8b5cf6 !important;
+            background-color: #ffffff !important;
+        }
+        .edit-active {
+            animation: highlightPulse 0.4s ease-out;
+            border: 2px solid #f97316 !important;
+            background-color: #ffffff !important;
+        }
+    </style>
+</head>
+<body class="pb-24 md:pb-8">
+
+    <!-- Delete Modal -->
+    <div id="deleteModalOverlay" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl scale-95 transition-transform">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-center text-sm font-bold text-gray-900 mb-2">Delete Record?</h3>
+            <p class="text-center text-[11px] text-gray-500 mb-6 leading-relaxed">Are you sure you want to delete this sale? Ye action revert nahi kiya ja sakta.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-[11px]">Cancel</button>
+                <button id="confirmDeleteBtn" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-bold text-[11px]">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModalOverlay" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl scale-95 transition-transform">
+            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+            <h3 class="text-center text-sm font-bold text-gray-900 mb-2">Google Sheet Sync</h3>
+            <p class="text-center text-[11px] text-gray-500 mb-4 leading-relaxed">Paste your Google Apps Script Web App URL here for background backup.</p>
+            <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/..." class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg mb-4 text-[10px]">
+            <div class="flex gap-3">
+                <button onclick="closeSettingsModal()" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold text-[11px]">Cancel</button>
+                <button onclick="saveSettings()" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-[11px]">Save URL</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bg-white border-b sticky top-0 z-40 px-4 py-2">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </div>
+                <h1 class="text-base font-bold text-gray-800">SalesPro</h1>
+            </div>
+            <div class="hidden md:flex gap-1 p-1 bg-gray-100 rounded-xl">
+                <button onclick="switchTab('create')" id="tab-create-desktop" class="tab-btn active px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all">Create Sale</button>
+                <button onclick="switchTab('records')" id="tab-records-desktop" class="tab-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all text-gray-500">Sales Record</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto p-4">
+        
+        <section id="section-create" class="space-y-4">
+            <div class="bg-white rounded-2xl p-5 custom-shadow transition-all duration-300 border-2 border-transparent" id="formContainer">
+                <h2 class="text-sm font-bold text-gray-800 mb-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1 h-4 bg-blue-600 rounded-full" id="formStatusIndicator"></span>
+                        <span id="formTitle">Sales Entry Form</span>
+                    </div>
+                    <span id="modeBadge" class="hidden px-2 py-0.5 text-[9px] rounded-full font-bold uppercase"></span>
+                </h2>
+                
+                <form id="salesForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input type="hidden" id="editId">
+                    <div class="space-y-1">
+                        <label>Customer Name</label>
+                        <input type="text" id="custName" placeholder="Full Name" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label>Contact Number</label>
+                        <input type="tel" id="custPhone" placeholder="Phone Number" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    </div>
+
+                    <div class="space-y-1 md:col-span-2">
+                        <label>Address</label>
+                        <input type="text" id="address" placeholder="Complete Address" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    </div>
+
+                    <div class="space-y-1 md:col-span-2">
+                        <label>House Size</label>
+                        <input type="text" id="houseSize" placeholder="House Size" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label>Service Type</label>
+                        <select id="cleanType" onchange="toggleServiceFields()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer">
+                            <option>Regular cleaning</option>
+                            <option>Deep cleaning</option>
+                            <option>Move in cleaning</option>
+                            <option>Move out cleaning</option>
+                            <option>Carpet cleaning</option>
+                            <option>Window cleaning</option>
+                            <option>End of tenancy cleaning</option>
+                            <option>Airbnb cleaning</option>
+                            <option>Appliances Cleaning</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1" id="hoursContainer">
+                            <label>Hours</label>
+                            <input type="text" id="hours" placeholder="Hours" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label id="priceLabel">Price (£/h)</label>
+                            <input type="number" id="price" placeholder="Price" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label>Date</label>
+                            <input type="date" id="date" onchange="autoFillDay()" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </div>
+                        <div class="space-y-1">
+                            <label>Day</label>
+                            <input type="text" id="day" placeholder="Day" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:col-span-2">
+                        <div class="space-y-1">
+                            <label>Start Time / Slot</label>
+                            <div class="flex gap-2">
+                                <select id="timeSlot" onchange="handleTimeSlotChange()" class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                    <option value="specific">Specific Time</option>
+                                    <option value="Morning">Morning</option>
+                                    <option value="Afternoon">Afternoon</option>
+                                    <option value="Evening">Evening</option>
+                                    <option value="To Be Confirmed">To Be Confirmed</option>
+                                </select>
+                                <input type="time" id="time" class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label>Appointment ID</label>
+                            <input type="text" id="appId" placeholder="ID Name" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 md:col-span-2">
+                        <label>Agent Name</label>
+                        <input type="text" id="agent" placeholder="Agent Name" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    </div>
+
+                    <div class="md:col-span-2 pt-2 flex gap-2">
+                        <button type="button" id="submitBtn" onclick="generateSale()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-xs shadow-lg active:scale-[0.98] transition-all">
+                            Generate & Save Sale
+                        </button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEdit()" class="hidden px-4 bg-gray-100 text-gray-500 rounded-xl font-bold text-xs">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="outputContainer" class="hidden bg-white rounded-2xl p-5 custom-shadow space-y-3 relative">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="font-bold text-gray-800 text-[10px] uppercase">Generated Text</h3>
+                    <button onclick="document.getElementById('outputContainer').classList.add('hidden')" class="p-1 text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-xl relative">
+                    <pre id="outputText" class="whitespace-pre-wrap font-sans text-gray-700 text-[11px]"></pre>
+                    <button onclick="copyToClipboard()" class="absolute top-2 right-2 bg-white p-1.5 rounded-lg border shadow-sm text-blue-600">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="sendToWhatsApp('+923162861914')" class="bg-[#25D366] text-white p-2.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-2">Ikrama (WA)</button>
+                    <button onclick="sendToWhatsApp('+923410249921')" class="bg-[#25D366] text-white p-2.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-2">Daniyal (WA)</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-records" class="hidden space-y-4">
+            <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-4 text-white shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <p class="text-[8px] font-bold uppercase opacity-80 tracking-wider">Salary Estimate</p>
+                        <h3 id="displaySalary" class="text-xl font-black">PKR 0</h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[8px] font-bold uppercase opacity-80 tracking-wider">Monthly Target (New Sales)</p>
+                        <p id="targetStatusLabel" class="text-[10px] font-bold">Pending (0/3)</p>
+                    </div>
+                </div>
+                <div class="w-full bg-blue-900/40 rounded-full h-1.5 mb-2 overflow-hidden">
+                    <div id="targetProgressBar" class="bg-white h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-[8px] opacity-70">Recurring sales do not count in target</p>
+                    <div id="targetBadge" class="bg-white text-blue-600 px-2 py-0.5 rounded text-[8px] font-bold uppercase">Keep Going</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white p-2 rounded-xl text-center shadow-sm border-t-4 border-yellow-400">
+                    <p class="text-[7px] font-extrabold text-gray-400 uppercase">Pending</p>
+                    <p id="stat-Pending" class="text-xs font-black text-gray-800">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-xl text-center shadow-sm border-t-4 border-green-400">
+                    <p class="text-[7px] font-extrabold text-gray-400 uppercase">Done</p>
+                    <p id="stat-Done" class="text-xs font-black text-gray-800">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-xl text-center shadow-sm border-t-4 border-red-400">
+                    <p class="text-[7px] font-extrabold text-gray-400 uppercase">Cancelled</p>
+                    <p id="stat-Cancelled" class="text-xs font-black text-gray-800">0</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-3 shadow-sm flex flex-col gap-3">
+                <div class="flex justify-between items-center px-1">
+                    <h2 class="text-sm font-bold text-gray-800">History & Filters</h2>
+                    <button onclick="openSettingsModal()" class="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded-md bg-gray-50 border border-gray-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" id="searchRecords" oninput="renderRecords()" placeholder="Search by name, phone or ID..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-100 text-[10px] font-medium rounded-lg outline-none">
+                </div>
+                <div class="flex gap-2">
+                    <select id="filterMonth" onchange="renderRecords()" class="flex-1 bg-gray-50 border-none text-[10px] font-bold rounded-lg px-2 py-2 outline-none">
+                    </select>
+                    <select id="sortRecords" onchange="renderRecords()" class="flex-1 bg-gray-50 border-none text-[10px] font-bold rounded-lg px-2 py-2 outline-none">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center px-1">
+                <div><h2 class="text-sm font-bold text-gray-800">Records List</h2></div>
+                <p class="text-[9px] text-gray-400 font-bold uppercase">Total: <span id="totalSalesCount" class="text-blue-600">0</span></p>
+            </div>
+            <div id="recordsListMobile" class="space-y-4"></div>
+            <div id="emptyState" class="hidden text-center py-12 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+                <p class="text-gray-400 text-xs font-medium">No records found for this period.</p>
+            </div>
+        </section>
+    </div>
+
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t px-6 py-2 flex justify-around items-center z-40">
+        <button onclick="switchTab('create')" id="mob-create" class="flex flex-col items-center text-blue-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            <span class="text-[9px] font-bold">Create</span>
+        </button>
+        <button onclick="switchTab('records')" id="mob-records" class="flex flex-col items-center text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            <span class="text-[9px] font-bold">Records</span>
+        </button>
+    </nav>
+
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-full text-[10px] font-bold opacity-0 pointer-events-none transition-all duration-300 z-[110]">
+        Success
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'SALES_PRO_DB_V8';
+        const AGENT_KEY = 'SALES_PRO_AGENT_V8';
+        const SCRIPT_URL_KEY = 'SALES_PRO_SCRIPT_URL_V1';
+        const fixedServices = ['Carpet cleaning', 'Window cleaning', 'Appliances Cleaning'];
+        
+        let sales = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let indexToDelete = null;
+        let editMode = false;
+        let isRecurringMode = false;
+
+        const monthsLong = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        function triggerHaptic(duration = 40) {
+            if (navigator.vibrate) navigator.vibrate(duration);
+        }
+
+        function getFormattedDate(dateStr) {
+            if(!dateStr) return "";
+            const date = new Date(dateStr);
+            const d = date.getDate();
+            const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return `${d} ${monthsShort[date.getMonth()]} ${date.getFullYear()}`;
+        }
+
+        function autoFillDay() {
+            const dateInput = document.getElementById('date').value;
+            if (dateInput) {
+                const date = new Date(dateInput);
+                const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                document.getElementById('day').value = days[date.getDay()];
+            }
+        }
+
+        function handleTimeSlotChange() {
+            const slot = document.getElementById('timeSlot').value;
+            const timeInput = document.getElementById('time');
+            if (slot === 'specific') {
+                timeInput.classList.remove('hidden');
+            } else {
+                timeInput.classList.add('hidden');
+                timeInput.value = ""; 
+            }
+        }
+        
+        function toggleServiceFields() {
+            const type = document.getElementById('cleanType').value;
+            const isFixed = fixedServices.includes(type);
+            const hoursContainer = document.getElementById('hoursContainer');
+            const priceLabel = document.getElementById('priceLabel');
+            const hoursInput = document.getElementById('hours');
+
+            if (isFixed) {
+                hoursContainer.classList.add('hidden');
+                priceLabel.innerText = "Price (£)";
+                hoursInput.value = "";
+            } else {
+                hoursContainer.classList.remove('hidden');
+                priceLabel.innerText = "Price (£/h)";
+            }
+        }
+
+        function updateMonthDropdown() {
+            const filterMonth = document.getElementById('filterMonth');
+            const currentSelected = filterMonth.value;
+            const availableMonths = new Set();
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${now.getMonth()}`;
+            availableMonths.add(currentMonthStr);
+            sales.forEach(s => {
+                const d = new Date(s.date);
+                availableMonths.add(`${d.getFullYear()}-${d.getMonth()}`);
+            });
+            const sortedMonths = Array.from(availableMonths).sort((a,b) => {
+                const [y1, m1] = a.split('-').map(Number);
+                const [y2, m2] = b.split('-').map(Number);
+                return (y2 * 12 + m2) - (y1 * 12 + m1);
+            });
+            let optionsHtml = '<option value="all">All Time History</option>';
+            sortedMonths.forEach(mStr => {
+                const [year, monthIdx] = mStr.split('-').map(Number);
+                const isCurrent = mStr === currentMonthStr;
+                optionsHtml += `<option value="${mStr}" ${isCurrent && !currentSelected ? 'selected' : ''}>${monthsLong[monthIdx]} ${year}${isCurrent ? ' (Current)' : ''}</option>`;
+            });
+            filterMonth.innerHTML = optionsHtml;
+            if(currentSelected && [...filterMonth.options].some(o => o.value === currentSelected)) {
+                filterMonth.value = currentSelected;
+            }
+        }
+
+        function switchTab(tab) {
+            triggerHaptic(30);
+            const createSec = document.getElementById('section-create');
+            const recordSec = document.getElementById('section-records');
+            const dCreate = document.getElementById('tab-create-desktop');
+            const dRecords = document.getElementById('tab-records-desktop');
+            const mCreate = document.getElementById('mob-create');
+            const mRecords = document.getElementById('mob-records');
+
+            if (tab === 'create') {
+                createSec.classList.remove('hidden'); recordSec.classList.add('hidden');
+                dCreate.classList.add('active'); dRecords.classList.remove('active');
+                mCreate.className = 'flex flex-col items-center text-blue-600';
+                mRecords.className = 'flex flex-col items-center text-gray-400';
+            } else {
+                createSec.classList.add('hidden'); recordSec.classList.remove('hidden');
+                dRecords.classList.add('active'); dCreate.classList.remove('active');
+                mRecords.className = 'flex flex-col items-center text-blue-600';
+                mCreate.className = 'flex flex-col items-center text-gray-400';
+                updateMonthDropdown();
+                renderRecords();
+            }
+        }
+
+        function clean(val) {
+            return (val || "").toString().trim();
+        }
+
+        function formatSaleText(sale) {
+            const isFixed = fixedServices.includes(sale.cleanType);
+            let output = "";
+            output += `Customer Name: ${clean(sale.customerName)}\n`;
+            output += `Contact Number: ${clean(sale.phone)}\n`;
+            output += `Address: ${clean(sale.address)}\n`;
+            output += `House Size: ${clean(sale.houseSize)}\n`;
+            output += `Clean Type: ${clean(sale.cleanType)}\n`;
+            
+            if(!isFixed && sale.hours) {
+                output += `Hours: ${clean(sale.hours)} hours\n`;
+            }
+
+            if(isFixed) {
+                output += `Price: £${clean(sale.price)}\n`;
+            } else {
+                output += `Price: £${clean(sale.price)} per hour\n`;
+            }
+
+            output += `Date: ${clean(sale.formattedDate)}\n`;
+            output += `Day: ${clean(sale.day)}\n`;
+            output += `Time: ${clean(sale.time)}\n`;
+            output += `Appointment ID: ${clean(sale.appId)}\n`;
+            output += `Agent Name: ${clean(sale.agent)}`;
+            
+            return output.trim();
+        }
+
+        function generateSale() {
+            const isFixed = fixedServices.includes(document.getElementById('cleanType').value);
+            const fields = ['custName', 'custPhone', 'address', 'houseSize', 'price', 'appId', 'agent', 'date', 'day'];
+            if (!isFixed) fields.push('hours');
+
+            let hasError = false;
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('input-error');
+                if(!el.value.trim()) { el.classList.add('input-error'); hasError = true; }
+            });
+
+            if(hasError) { showToast("All fields required!"); return; }
+
+            const newName = document.getElementById('custName').value.trim().toLowerCase();
+            const newDate = document.getElementById('date').value;
+            const newService = document.getElementById('cleanType').value;
+            
+            const isDuplicate = !isRecurringMode && sales.some(s => 
+                s.customerName.toLowerCase() === newName && 
+                s.date === newDate && 
+                s.cleanType === newService && 
+                s.id !== (editMode ? parseInt(document.getElementById('editId').value) : -1)
+            );
+
+            if (isDuplicate) {
+                showToast("Duplicate Entry Detected!");
+                return;
+            }
+
+            const agentVal = document.getElementById('agent').value.trim();
+            localStorage.setItem(AGENT_KEY, agentVal);
+
+            const slot = document.getElementById('timeSlot').value;
+            let finalTime = (slot === 'specific') ? document.getElementById('time').value : slot;
+            if (slot === 'specific' && !finalTime) { showToast("Please select a time"); return; }
+
+            const saleData = {
+                customerName: document.getElementById('custName').value.trim(),
+                phone: document.getElementById('custPhone').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                houseSize: document.getElementById('houseSize').value.trim(),
+                cleanType: document.getElementById('cleanType').value,
+                hours: document.getElementById('hours').value.trim(),
+                price: document.getElementById('price').value.trim(),
+                date: document.getElementById('date').value,
+                formattedDate: getFormattedDate(document.getElementById('date').value),
+                day: document.getElementById('day').value.trim(),
+                time: finalTime,
+                appId: document.getElementById('appId').value.trim(),
+                agent: agentVal
+            };
+
+            if (editMode && !isRecurringMode) {
+                const editId = parseInt(document.getElementById('editId').value);
+                const index = sales.findIndex(s => s.id === editId);
+                if (index !== -1) {
+                    sales[index] = { ...sales[index], ...saleData };
+                    showToast("Sale Updated!");
+                    triggerHaptic(60);
+                }
+                cancelEdit();
+            } else {
+                const newSale = {
+                    id: Date.now(),
+                    ...saleData,
+                    status: 'Pending'
+                };
+                sales.unshift(newSale);
+                
+                // --- SYNC: Push to cloud ---
+                pushToCloud(newSale);
+
+                showToast(isRecurringMode ? "Recurring Sale Created!" : "Sale Saved!");
+                triggerHaptic(60);
+                if(isRecurringMode) cancelEdit(); 
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sales));
+            
+            const outputCont = document.getElementById('outputContainer');
+            document.getElementById('outputText').innerText = formatSaleText(sales[0]);
+            outputCont.classList.remove('hidden');
+            setTimeout(() => { outputCont.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+
+            if (!editMode && !isRecurringMode) {
+                document.getElementById('salesForm').reset();
+                document.getElementById('agent').value = agentVal;
+                document.getElementById('timeSlot').value = 'specific';
+                handleTimeSlotChange();
+                toggleServiceFields();
+            }
+        }
+
+        // --- SYNC Logic Start ---
+        
+        function openSettingsModal() {
+            triggerHaptic(30);
+            const storedUrl = localStorage.getItem(SCRIPT_URL_KEY) || "";
+            document.getElementById('scriptUrlInput').value = storedUrl;
+            document.getElementById('settingsModalOverlay').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModalOverlay').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            triggerHaptic(30);
+            const url = document.getElementById('scriptUrlInput').value.trim();
+            if(url) {
+                localStorage.setItem(SCRIPT_URL_KEY, url);
+                showToast("URL Saved & Linked");
+                closeSettingsModal();
+                pullFromCloud(); // Try to fetch immediately
+            } else {
+                showToast("Please enter a valid URL");
+            }
+        }
+
+        // Silent Push to Cloud
+        async function pushToCloud(sale) {
+            const scriptUrl = localStorage.getItem(SCRIPT_URL_KEY);
+            if (!scriptUrl) return; // No config, no sync
+
+            try {
+                // Sending plain text to avoid complex CORS preflight issues with simple GAS scripts
+                await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(sale)
+                });
+                console.log("Sent to cloud silently");
+            } catch (error) {
+                console.warn("Background sync failed", error);
+                // Fail silently as requested, data is safe in local storage
+            }
+        }
+
+        // Silent Pull from Cloud (Load)
+        async function pullFromCloud() {
+            const scriptUrl = localStorage.getItem(SCRIPT_URL_KEY);
+            if (!scriptUrl) return;
+
+            try {
+                const response = await fetch(`${scriptUrl}?action=read`);
+                const cloudData = await response.json();
+                
+                if (Array.isArray(cloudData) && cloudData.length > 0) {
+                    let newDataFound = false;
+                    const currentIds = new Set(sales.map(s => s.id));
+
+                    // Add items from cloud that are missing locally
+                    cloudData.forEach(cloudSale => {
+                        if (!currentIds.has(cloudSale.id)) {
+                            sales.push(cloudSale);
+                            newDataFound = true;
+                        }
+                    });
+
+                    if (newDataFound) {
+                        // Re-sort and Save
+                        sales.sort((a,b) => b.id - a.id);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(sales));
+                        updateMonthDropdown();
+                        renderRecords();
+                        console.log("Cloud data merged");
+                    }
+                }
+            } catch (error) {
+                console.warn("Cloud fetch failed", error);
+            }
+        }
+
+        // --- SYNC Logic End ---
+
+        function setupRecurringSale(id) {
+            triggerHaptic(50);
+            const sale = sales.find(s => s.id === id);
+            if (!sale) return;
+            
+            isRecurringMode = true;
+            editMode = false;
+
+            const formContainer = document.getElementById('formContainer');
+            formContainer.classList.add('recurring-active');
+            formContainer.classList.remove('edit-active');
+            
+            const badge = document.getElementById('modeBadge');
+            badge.innerText = "Recurring Mode";
+            badge.className = "px-2 py-0.5 text-[9px] rounded-full font-bold uppercase bg-purple-100 text-purple-700";
+            badge.classList.remove('hidden');
+
+            document.getElementById('formTitle').innerText = "Create Recurring Sale";
+            document.getElementById('formStatusIndicator').className = "w-1 h-4 bg-purple-600 rounded-full";
+            document.getElementById('submitBtn').innerText = "Generate Recurring Sale";
+            document.getElementById('submitBtn').className = "flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold text-xs shadow-lg active:scale-[0.98] transition-all";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            document.getElementById('custName').value = sale.customerName;
+            document.getElementById('custPhone').value = sale.phone;
+            document.getElementById('address').value = sale.address;
+            document.getElementById('houseSize').value = sale.houseSize;
+            document.getElementById('cleanType').value = sale.cleanType;
+            document.getElementById('hours').value = sale.hours;
+            document.getElementById('price').value = sale.price;
+            document.getElementById('agent').value = sale.agent;
+            document.getElementById('appId').value = sale.appId;
+            
+            document.getElementById('date').value = "";
+            document.getElementById('day').value = "";
+            document.getElementById('time').value = "";
+            document.getElementById('timeSlot').value = "specific";
+
+            toggleServiceFields();
+            handleTimeSlotChange();
+
+            switchTab('create');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast("Details Imported for Recurring Sale");
+        }
+
+        function editSale(id) {
+            triggerHaptic(40);
+            const sale = sales.find(s => s.id === id);
+            if (!sale) return;
+            
+            editMode = true;
+            isRecurringMode = false;
+            document.getElementById('editId').value = id;
+
+            const formContainer = document.getElementById('formContainer');
+            formContainer.classList.add('edit-active');
+            formContainer.classList.remove('recurring-active');
+
+            const badge = document.getElementById('modeBadge');
+            badge.innerText = "Edit Mode";
+            badge.className = "px-2 py-0.5 text-[9px] rounded-full font-bold uppercase bg-orange-100 text-orange-700";
+            badge.classList.remove('hidden');
+
+            document.getElementById('formTitle').innerText = "Edit Sale Details";
+            document.getElementById('formStatusIndicator').className = "w-1 h-4 bg-orange-500 rounded-full";
+            document.getElementById('submitBtn').innerText = "Update Sale Record";
+            document.getElementById('submitBtn').className = "flex-1 bg-orange-500 text-white py-3 rounded-xl font-bold text-xs shadow-lg active:scale-[0.98] transition-all";
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            document.getElementById('custName').value = sale.customerName;
+            document.getElementById('custPhone').value = sale.phone;
+            document.getElementById('address').value = sale.address;
+            document.getElementById('houseSize').value = sale.houseSize;
+            document.getElementById('cleanType').value = sale.cleanType;
+            document.getElementById('hours').value = sale.hours;
+            document.getElementById('price').value = sale.price;
+            document.getElementById('date').value = sale.date;
+            document.getElementById('day').value = sale.day;
+            document.getElementById('appId').value = sale.appId;
+            document.getElementById('agent').value = sale.agent;
+
+            toggleServiceFields();
+
+            const timeVal = sale.time;
+            const slots = ["Morning", "Afternoon", "Evening", "To Be Confirmed"];
+            if (slots.includes(timeVal)) {
+                document.getElementById('timeSlot').value = timeVal;
+                document.getElementById('time').classList.add('hidden');
+            } else {
+                document.getElementById('timeSlot').value = "specific";
+                document.getElementById('time').classList.remove('hidden');
+                document.getElementById('time').value = timeVal;
+            }
+
+            switchTab('create');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            triggerHaptic(30);
+            editMode = false;
+            isRecurringMode = false;
+            document.getElementById('salesForm').reset();
+            document.getElementById('editId').value = "";
+            document.getElementById('formTitle').innerText = "Sales Entry Form";
+            document.getElementById('formStatusIndicator').className = "w-1 h-4 bg-blue-600 rounded-full";
+            document.getElementById('submitBtn').innerText = "Generate & Save Sale";
+            document.getElementById('submitBtn').className = "flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold text-xs shadow-lg active:scale-[0.98] transition-all";
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('modeBadge').classList.add('hidden');
+            
+            const formContainer = document.getElementById('formContainer');
+            formContainer.classList.remove('recurring-active');
+            formContainer.classList.remove('edit-active');
+            
+            const agent = localStorage.getItem(AGENT_KEY);
+            if(agent) document.getElementById('agent').value = agent;
+            document.getElementById('timeSlot').value = 'specific';
+            handleTimeSlotChange();
+            toggleServiceFields();
+        }
+
+        function calculateSalary(currentViewSales, allGlobalSales) {
+            const BASE_SALARY = 15000;
+            const TARGET = 3;
+            let salary = 0;
+            let newSalesCount = 0;
+            const doneSalesInView = currentViewSales.filter(s => s.status === 'Done');
+
+            doneSalesInView.forEach(sale => {
+                const currentPhone = (sale.phone || "").replace(/[^0-9]/g, '');
+                const isRecurring = allGlobalSales.some(s => 
+                    s.id < sale.id && (s.phone || "").replace(/[^0-9]/g, '') === currentPhone
+                );
+
+                if (isRecurring) {
+                    salary += 500;
+                } else {
+                    salary += 3000;
+                    newSalesCount++;
+                }
+            });
+
+            if(newSalesCount >= TARGET) salary += BASE_SALARY;
+            return { totalSalary: salary, targetProgress: newSalesCount };
+        }
+
+        function renderRecords() {
+            const list = document.getElementById('recordsListMobile');
+            const empty = document.getElementById('emptyState');
+            const filterMonth = document.getElementById('filterMonth').value;
+            const searchTerm = document.getElementById('searchRecords').value.toLowerCase();
+            list.innerHTML = '';
+            
+            let filtered = [...sales];
+            if (searchTerm) {
+                filtered = filtered.filter(s => 
+                    (s.customerName || "").toLowerCase().includes(searchTerm) || 
+                    (s.phone || "").toLowerCase().includes(searchTerm) || 
+                    (s.appId || "").toLowerCase().includes(searchTerm)
+                );
+            }
+            if(filterMonth !== 'all') {
+                const [fYear, fMonth] = filterMonth.split('-').map(Number);
+                filtered = filtered.filter(s => {
+                    const sd = new Date(s.date);
+                    return sd.getFullYear() === fYear && sd.getMonth() === fMonth;
+                });
+            }
+            
+            let counts = { Pending: 0, Done: 0, Cancelled: 0 };
+            filtered.forEach(s => counts[s.status]++);
+            
+            const salaryData = calculateSalary(filtered, sales);
+            document.getElementById('displaySalary').innerText = `PKR ${salaryData.totalSalary.toLocaleString()}`;
+            
+            const targetProgress = Math.min((salaryData.targetProgress / 3) * 100, 100);
+            document.getElementById('targetProgressBar').style.width = `${targetProgress}%`;
+            document.getElementById('targetStatusLabel').innerText = salaryData.targetProgress >= 3 ? `Achieved (${salaryData.targetProgress}/3)` : `Pending (${salaryData.targetProgress}/3)`;
+            
+            const badge = document.getElementById('targetBadge');
+            badge.innerText = salaryData.targetProgress >= 3 ? "Target Met" : "Keep Going";
+
+            document.getElementById('stat-Pending').innerText = counts.Pending;
+            document.getElementById('stat-Done').innerText = counts.Done;
+            document.getElementById('stat-Cancelled').innerText = counts.Cancelled;
+            document.getElementById('totalSalesCount').innerText = filtered.length;
+
+            if (filtered.length === 0) { empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            const sortVal = document.getElementById('sortRecords').value;
+            filtered.sort((a,b) => sortVal === 'newest' ? b.id - a.id : a.id - b.id);
+
+            filtered.forEach((sale) => {
+                const realIdx = sales.findIndex(s => s.id === sale.id);
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-3 relative overflow-hidden transition-all active:scale-[0.98]";
+                card.style.borderLeft = `4px solid ${{Pending: '#fbbf24', Done: '#22c55e', Cancelled: '#ef4444'}[sale.status]}`;
+
+                const cleanPhone = (p) => p ? p.replace(/[^0-9]/g, '') : '';
+                const currentPhone = cleanPhone(sale.phone);
+                const isRecurring = currentPhone && sales.some(s => s.id < sale.id && cleanPhone(s.phone) === currentPhone);
+                const recurringBadge = isRecurring ? `<span class="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[8px] rounded border border-purple-200 font-bold uppercase tracking-wider">Recurring</span>` : '';
+
+                const isFixed = fixedServices.includes(sale.cleanType);
+                let priceDisplay = isFixed ? `£${sale.price}` : `£${sale.price}/h`;
+                let hoursDisplay = isFixed ? `<span class="text-gray-300">N/A</span>` : `${sale.hours}h`;
+                let totalDisplay = "Variable Total";
+                if (!isFixed) {
+                    const h = parseFloat(sale.hours);
+                    const p = parseFloat(sale.price);
+                    if (!isNaN(h) && sale.hours.toString().trim() == h.toString()) totalDisplay = `£${h * p} Total`;
+                } else {
+                    totalDisplay = `£${sale.price} Total`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-0.5">
+                            <h4 class="font-bold text-gray-900 text-xs flex items-center">
+                                ${sale.customerName}
+                                ${recurringBadge}
+                            </h4>
+                            <p class="text-[9px] text-gray-500 font-medium">${sale.phone}</p>
+                        </div>
+                        <select onchange="updateStatus(${realIdx}, this.value)" class="status-pill status-${sale.status}">
+                            <option value="Pending" ${sale.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Done" ${sale.status === 'Done' ? 'selected' : ''}>Done</option>
+                            <option value="Cancelled" ${sale.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-y-3 gap-x-4 border-y py-3 border-gray-50">
+                        <div class="space-y-0.5">
+                            <p class="detail-label">Service & Size</p>
+                            <p class="detail-value">${sale.cleanType}</p>
+                            <p class="text-[8px] text-gray-400 font-bold">${sale.houseSize}</p>
+                        </div>
+                        <div class="space-y-0.5">
+                            <p class="detail-label">Payment</p>
+                            <p class="detail-value">${totalDisplay}</p>
+                            <p class="text-[8px] text-gray-400 font-bold flex items-center">
+                                ${priceDisplay} <span class="divider-pipe">|</span> ${hoursDisplay}
+                            </p>
+                        </div>
+                        <div class="space-y-0.5">
+                            <p class="detail-label">Date & Day</p>
+                            <p class="detail-value">${sale.formattedDate}
+                            <p class="text-[8px] text-gray-400 font-bold uppercase">${sale.day}</p>
+                        </div>
+                        <div class="space-y-0.5">
+                            <p class="detail-label">Start Time</p>
+                            <p class="detail-value">${sale.time}</p>
+                        </div>
+                        <div class="col-span-2 space-y-0.5">
+                            <p class="detail-label">Address</p>
+                            <p class="detail-value leading-tight">${sale.address}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <div class="space-y-0.5">
+                            <p class="text-[7px] text-gray-400 font-bold uppercase">ID: ${sale.appId}</p>
+                            <p class="text-[7px] text-gray-400 font-bold uppercase">Agent: ${sale.agent}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="setupRecurringSale(${sale.id})" class="action-btn bg-purple-50 text-purple-600 border border-purple-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                            <button onclick="editSale(${sale.id})" class="action-btn bg-orange-50 text-orange-500 border border-orange-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button onclick='copyToClipboard(formatSaleText(${JSON.stringify(sale)}))' class="action-btn bg-blue-50 text-blue-600 border border-blue-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                            </button>
+                            <button onclick="openDeleteModal(${realIdx})" class="action-btn bg-red-50 text-red-400 border border-red-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function openDeleteModal(idx) {
+            triggerHaptic(40);
+            indexToDelete = idx;
+            const modal = document.getElementById('deleteModalOverlay');
+            modal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModalOverlay').classList.add('hidden');
+            indexToDelete = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').onclick = function() {
+            if(indexToDelete !== null) {
+                triggerHaptic(70);
+                sales.splice(indexToDelete, 1);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(sales));
+                updateMonthDropdown();
+                renderRecords();
+                closeDeleteModal();
+                showToast("Deleted");
+            }
+        };
+
+        function updateStatus(idx, val) {
+            triggerHaptic(40);
+            sales[idx].status = val;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sales));
+            renderRecords();
+            showToast("Updated");
+        }
+
+        function copyToClipboard(text) {
+            triggerHaptic(50);
+            const txt = text || document.getElementById('outputText').innerText;
+            const temp = document.createElement('textarea');
+            temp.value = txt; document.body.appendChild(temp);
+            temp.select(); document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast("Copied!");
+        }
+
+        function sendToWhatsApp(num) {
+            const txt = document.getElementById('outputText').innerText;
+            window.open(`https://wa.me/${num}?text=${encodeURIComponent(txt)}`, '_blank');
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        window.onload = () => {
+            const agent = localStorage.getItem(AGENT_KEY);
+            if(agent) document.getElementById('agent').value = agent;
+            toggleServiceFields();
+            updateMonthDropdown();
+            renderRecords();
+            
+            // Try to sync on load
+            pullFromCloud();
+        };
+    </script>
+</body>
+</html>
